@@ -28,7 +28,6 @@ flags.DEFINE_string('weights', './checkpoints/yolov4-416',
                     'path to weights file')
 flags.DEFINE_integer('size', 416, 'resize images to')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
-flags.DEFINE_string('model', 'yolov4', 'yolov3 or yolov4')
 flags.DEFINE_string('video', './data/video/test.mp4', 'path to input video or set to 0 for webcam')
 flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
@@ -60,18 +59,9 @@ def main(_argv):
     input_size = FLAGS.size
     video_path = FLAGS.video
 
-    # load tflite model if flag is set
-    if FLAGS.framework == 'tflite':
-        interpreter = tf.lite.Interpreter(model_path=FLAGS.weights)
-        interpreter.allocate_tensors()
-        input_details = interpreter.get_input_details()
-        output_details = interpreter.get_output_details()
-        print(input_details)
-        print(output_details)
-    # otherwise load standard tensorflow saved model
-    else:
-        saved_model_loaded = tf.saved_model.load(FLAGS.weights, tags=[tag_constants.SERVING])
-        infer = saved_model_loaded.signatures['serving_default']
+
+    saved_model_loaded = tf.saved_model.load(FLAGS.weights, tags=[tag_constants.SERVING])
+    infer = saved_model_loaded.signatures['serving_default']
 
     # begin video capture
     try:
@@ -98,8 +88,12 @@ def main(_argv):
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(frame)
         else:
-            print('Video has ended or failed, try a different video format!')
-            break
+            if FLAGS.output:
+                print('Video has ended or failed, try a different video format!')
+                break
+            else:
+                print('Error reading frame')
+
         frame_num +=1
         print('Frame #: ', frame_num)
         frame_size = frame.shape[:2]
@@ -114,11 +108,7 @@ def main(_argv):
             interpreter.invoke()
             pred = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
             # run detections using yolov3 if flag is set
-            if FLAGS.model == 'yolov3' and FLAGS.tiny == True:
-                boxes, pred_conf = filter_boxes(pred[1], pred[0], score_threshold=0.25,
-                                                input_shape=tf.constant([input_size, input_size]))
-            else:
-                boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25,
+            boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25,
                                                 input_shape=tf.constant([input_size, input_size]))
         else:
             batch_data = tf.constant(image_data)
