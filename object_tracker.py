@@ -23,12 +23,15 @@ from deep_sort import preprocessing, nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
+from kubernetes import client as clientk8
+from kubernetes import config as configk8
+
 flags.DEFINE_string('framework', 'tf', '(tf, tflite, trt')
 flags.DEFINE_string('weights', './checkpoints/yolov4-416',
                     'path to weights file')
 flags.DEFINE_integer('size', 416, 'resize images to')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
-flags.DEFINE_string('video', './data/video/test.mp4', 'path to input video or set to 0 for webcam')
+flags.DEFINE_string('video', None, 'path to input video or set to 0 for webcam')
 flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
 flags.DEFINE_float('iou', 0.45, 'iou threshold')
@@ -37,7 +40,26 @@ flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
 flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
 
+podname_stream_in = os.getenv('POD_STREAM_IN')
+stream_port = os.getenv('STREAM_PORT')
+stream_name = os.getenv('STREAM_NAME')
+
 def main(_argv):
+    find_rtsp_stream = 0
+
+    configk8.load_incluster_config()
+
+    v1 = clientk8.CoreV1Api()
+    ret = v1.list_pod_for_all_namespaces(watch=False)
+    for i in ret.items:
+        if (podname_stream_in in i.metadata.name):
+            stream_ip = i.status.pod_ip
+            find_rtsp_stream = 1
+            #print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+    if not find_rtsp_stream:
+        print ("RSTP Server Pod is not running, exiting...")
+        #exit()
+
     # Definition of the parameters
     max_cosine_distance = 0.4
     nn_budget = None
@@ -57,8 +79,10 @@ def main(_argv):
     session = InteractiveSession(config=config)
     STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
     input_size = FLAGS.size
-    video_path = FLAGS.video
-
+    if FLAGS.video:
+        video_path = FLAGS.video
+    else:
+        video_path = "rtsp://" + stream_ip + ":" + stream_port + "/" + stream_name
 
     saved_model_loaded = tf.saved_model.load(FLAGS.weights, tags=[tag_constants.SERVING])
     infer = saved_model_loaded.signatures['serving_default']
