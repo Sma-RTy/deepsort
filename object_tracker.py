@@ -23,6 +23,9 @@ from deep_sort import preprocessing, nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
+import threading
+import camera_restserver as camrest
+
 flags.DEFINE_string('framework', 'tf', '(tf, tflite, trt')
 flags.DEFINE_string('weights', './checkpoints/yolov4-416',
                     'path to weights file')
@@ -36,8 +39,18 @@ flags.DEFINE_float('score', 0.50, 'score threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
 flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
+flags.DEFINE_string('camera_ip', None, 'IP Address of the camera')
+flags.DEFINE_string('camera_user', None, 'ONVIF username of the camera')
+flags.DEFINE_string('camera_pwd', None, 'ONVIF user password of the camera')
 
 def main(_argv):
+    
+    if FLAGS.camera_ip and FLAGS.camera_user and FLAGS.camera_pwd:
+        t = threading.Thread(target=camrest.CameraControl('positions.json', FLAGS.camera_ip, FLAGS.camera_user, FLAGS.camera_pwd).Run)
+        t.start()
+    else:
+        print ("Camera informations must be passed as arguments. ONVIF control disabled.")
+    
     # Definition of the parameters
     max_cosine_distance = 0.4
     nn_budget = None
