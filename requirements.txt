@@ -6,3 +6,7 @@ absl-py
 easydict
 matplotlib
 pillow
+kubernetes
+sensecam-control
+flask
+waitress
