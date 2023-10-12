@@ -25,6 +25,8 @@ from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 from kubernetes import client as clientk8
 from kubernetes import config as configk8
+import threading 
+import camera_restserver as camrest
 
 flags.DEFINE_string('framework', 'tf', '(tf, tflite, trt')
 flags.DEFINE_string('weights', './checkpoints/yolov4-416',
@@ -43,6 +45,9 @@ flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
 podname_stream_in = os.getenv('POD_STREAM_IN')
 stream_port = os.getenv('STREAM_PORT')
 stream_name = os.getenv('STREAM_NAME')
+camera_ip = os.getenv('CAMERA_IP')
+camera_user = os.getenv('ONVIF_USER')
+camera_pwd = os.getenv('ONVIF_PWD')
 
 def main(_argv):
     find_rtsp_stream = 0
@@ -55,11 +60,17 @@ def main(_argv):
         if (podname_stream_in in i.metadata.name):
             stream_ip = i.status.pod_ip
             find_rtsp_stream = 1
-            #print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+            # print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
     if not find_rtsp_stream:
         print ("RSTP Server Pod is not running, exiting...")
-        #exit()
-
+        exit()
+    
+    if camera_ip and camera_user and camera_pwd:
+        t = threading.Thread(target=camrest.CameraControl('positions.json', FLAGS.camera_ip, FLAGS.camera_user, FLAGS.camera_pwd).Run)
+        t.start()
+    else:
+        print ("Camera informations must be passed as arguments. ONVIF control disabled.")
+    
     # Definition of the parameters
     max_cosine_distance = 0.4
     nn_budget = None
