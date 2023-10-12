@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.1-cudnn7-devel-ubuntu18.04
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Rome
@@ -17,13 +17,13 @@ RUN apt-get update && \
       iputils-ping \
   && rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/Sma-RTy/deepsort.git /obj_track
+RUN git clone https://github.com/Sma-RTy/deepsort.git -b k8_integration /obj_track
 
 WORKDIR /obj_track
 COPY obj_track.weights .
 
 RUN pip3 install --upgrade pip
-RUN pip3 install -r requirements-gpu.txt
+RUN pip3 install -r requirements.txt
 
 RUN python3 save_model.py --model yolov4 --weights obj_track.weights
 ENTRYPOINT ["python3", "object_tracker.py", "--video", "./data/video/test.mp4", "--output",  "./outputs/demo.avi", "--dont_show"]
