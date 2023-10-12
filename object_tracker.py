@@ -66,7 +66,7 @@ def main(_argv):
         exit()
     
     if camera_ip and camera_user and camera_pwd:
-        t = threading.Thread(target=camrest.CameraControl('positions.json', FLAGS.camera_ip, FLAGS.camera_user, FLAGS.camera_pwd).Run)
+        t = threading.Thread(target=camrest.CameraControl('positions.json', camera_ip, camera_user, camera_pwd).Run)
         t.start()
     else:
         print ("Camera informations must be passed as arguments. ONVIF control disabled.")
