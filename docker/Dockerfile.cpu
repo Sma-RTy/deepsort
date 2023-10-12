@@ -11,6 +11,7 @@ RUN apt-get update && \
       libsm6 \ 
       libxext6 \
       libxrender-dev \
+      libglib2.0-0 \
       git \
       nano \
       net-tools \
