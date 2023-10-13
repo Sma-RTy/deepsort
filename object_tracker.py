@@ -58,11 +58,12 @@ def main(_argv):
     ret = v1.list_pod_for_all_namespaces(watch=False)
     for i in ret.items:
         if (podname_stream_in in i.metadata.name):
-            stream_ip = i.status.pod_ip
-            find_rtsp_stream = 1
-            # print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+            if i.status.pod_ip:
+                stream_ip = i.status.pod_ip
+                find_rtsp_stream = 1
+                # print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
     if not find_rtsp_stream:
-        print ("RSTP Server Pod is not running, exiting...")
+        print ("RSTP Server Pod is not running or Pod IP is None, exiting...")
         exit()
     
     if camera_ip and camera_user and camera_pwd:
