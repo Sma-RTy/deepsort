@@ -26,5 +26,7 @@ COPY obj_track.weights .
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
 
+RUN cp -r /usr/local/lib/python3.8/site-packages/wsdl /usr/local/lib/python3.8/dist-packages/
+
 RUN python3 save_model.py --model yolov4 --weights obj_track.weights
 ENTRYPOINT ["python3", "object_tracker.py", "--video", "./data/video/test.mp4", "--output",  "./outputs/demo.avi", "--dont_show"]
